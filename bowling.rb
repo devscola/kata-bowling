@@ -1,9 +1,32 @@
 require 'rspec'
+class Game
+  def self.score_for(gamecard)
+    self.new(gamecard).score
+  end
 
-def calculate_score(game)
-  game.chars
-      .map(&:to_i)
-      .inject(&:+)
+  def initialize(gamecard)
+    @frames = gamecard
+  end
+
+  def score
+    first_frame = Frame.new(@frames)
+    first_frame.score
+  end
+end
+
+class Frame
+  def initialize(try_list)
+    @tries = try_list.chars
+  end
+
+  def score
+    return 10 if @tries.include?('/')
+    @tries.map(&:to_i).inject(&:+)
+  end
+end
+
+def calculate_score(gamecard)
+  Game.score_for(gamecard)
 end
 
 describe 'Bowling' do
@@ -37,4 +60,12 @@ describe 'Bowling' do
     expect(score).to eq(9)
   end
 
+  it "spare in the first frame score 10" do
+
+    game = "7/------------------"
+
+    score = calculate_score(game)
+
+    expect(score).to eq(10)
+  end
 end
