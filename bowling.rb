@@ -1,7 +1,9 @@
 require 'rspec'
 
 def calculate_score(game)
-  game.to_i
+  game.chars
+      .map(&:to_i)
+      .inject(&:+)
 end
 
 describe 'Bowling' do
@@ -25,6 +27,14 @@ describe 'Bowling' do
 
     # assert
     expect(score).to eq(7)
+  end
+
+  it "nine pins down on the first frame score 9" do
+    game = "72------------------"
+
+    score = calculate_score(game)
+
+    expect(score).to eq(9)
   end
 
 end
