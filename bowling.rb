@@ -1,4 +1,5 @@
 require 'rspec'
+
 class Game
   def self.score_for(gamecard)
     self.new(gamecard).score
@@ -15,13 +16,33 @@ class Game
 end
 
 class Frame
+  SPARE = '/'
+  STRIKE = 'X'
+
+  MAX_POINTS = 10
+
   def initialize(try_list)
     @tries = try_list.chars
   end
 
   def score
-    return 10 if @tries.include?('/')
+    return MAX_POINTS if all_pins_down?
+
     @tries.map(&:to_i).inject(&:+)
+  end
+
+  private
+
+  def all_pins_down?
+    spare? || strike?
+  end
+
+  def spare?
+    @tries.include?(SPARE)
+  end
+
+  def strike?
+    @tries.include?(STRIKE)
   end
 end
 
@@ -63,6 +84,15 @@ describe 'Bowling' do
   it "spare in the first frame score 10" do
 
     game = "7/------------------"
+
+    score = calculate_score(game)
+
+    expect(score).to eq(10)
+  end
+
+  it "strike in the first frame score 10" do
+
+    game = "X------------------"
 
     score = calculate_score(game)
 
