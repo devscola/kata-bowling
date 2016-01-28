@@ -23,7 +23,10 @@ class Game
   private
 
   def extract_frames_from(gamecard)
-    gamecard.chars.each_slice(2).map {|frame| Frame.new(frame.join) }
+    gamecard.gsub("X", "X-")
+            .chars
+            .each_slice(2)
+            .map {|rolls| Frame.new(rolls.join) }
   end
 end
 
@@ -33,18 +36,18 @@ class Frame
 
   MAX_POINTS = 10
 
-  def initialize(try_list)
-    @tries = try_list.chars
+  def initialize(roll_list)
+    @rolls = roll_list.chars
   end
 
   def score
     return MAX_POINTS if all_pins_down?
 
-    @tries.map(&:to_i).inject(&:+)
+    @rolls.map(&:to_i).inject(&:+)
   end
 
   def bonificable_score
-    @tries.first.to_i
+    @rolls.first.to_i
   end
 
   def all_pins_down?
@@ -54,18 +57,20 @@ class Frame
   private
 
   def spare?
-    @tries.include?(SPARE)
+    @rolls.include?(SPARE)
   end
 
   def strike?
-    @tries.include?(STRIKE)
+    @rolls.include?(STRIKE)
   end
 end
 
+#####################
 def calculate_score(gamecard)
   Game.score_for(gamecard)
 end
 
+#####################
 describe 'Bowling' do
   it "all misses score 0" do
     # arrange
@@ -115,9 +120,18 @@ describe 'Bowling' do
     expect(score).to eq(10)
   end
 
-  it "spare in first frame and simple 5 pins down in first try of second frame score 20" do
+  it "spare in the first frame and 5 pins down in the first roll of the second frame score 20" do
 
     game = "5/5-----------------"
+
+    score = calculate_score(game)
+
+    expect(score).to eq(20)
+  end
+
+  it "strike in the first frame and 5 pins down scores 20" do
+
+    game = "X5-----------------"
 
     score = calculate_score(game)
 
@@ -132,5 +146,4 @@ describe 'Bowling' do
 
     expect(score).to eq(13)
   end
-
 end
