@@ -6,12 +6,24 @@ class Game
   end
 
   def initialize(gamecard)
-    @frames = gamecard
+    @frames = extract_frames_from(gamecard)
   end
 
   def score
-    first_frame = Frame.new(@frames)
-    first_frame.score
+    index = 0
+    @frames.inject(0) do |accumulator, frame|
+      if frame.all_pins_down?
+        accumulator += @frames[index + 1].bonificable_score
+      end
+      index += 1
+      accumulator += frame.score
+    end
+  end
+
+  private
+
+  def extract_frames_from(gamecard)
+    gamecard.chars.each_slice(2).map {|frame| Frame.new(frame.join) }
   end
 end
 
@@ -31,11 +43,15 @@ class Frame
     @tries.map(&:to_i).inject(&:+)
   end
 
-  private
+  def bonificable_score
+    @tries.first.to_i
+  end
 
   def all_pins_down?
     spare? || strike?
   end
+
+  private
 
   def spare?
     @tries.include?(SPARE)
@@ -98,4 +114,23 @@ describe 'Bowling' do
 
     expect(score).to eq(10)
   end
+
+  it "spare in first frame and simple 5 pins down in first try of second frame score 20" do
+
+    game = "5/5-----------------"
+
+    score = calculate_score(game)
+
+    expect(score).to eq(20)
+  end
+
+  xit "nine pins down on the first frame and four pins down on the second frame score 13" do
+
+    game = "54-4----------------"
+
+    score = calculate_score(game)
+
+    expect(score).to eq(13)
+  end
+
 end
