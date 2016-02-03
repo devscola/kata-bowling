@@ -7,26 +7,54 @@ class Game
 
   def initialize(gamecard)
     @frames = extract_frames_from(gamecard)
+    @pending_bonus_count = 0
+    @frames_with_pending_score = 0
   end
 
   def score
-    index = 0
     @frames.inject(0) do |accumulator, frame|
-      if frame.all_pins_down?
-        accumulator += @frames[index + 1].bonificable_score
-      end
-      index += 1
+      number_of_bonuses = bonuses_to_use(frame)
+
       accumulator += frame.score
+      accumulator += frame.bonificable_score(number_of_bonuses)
+
+      update_bonus_count(number_of_bonuses, frame)
+
+      accumulator
     end
   end
 
   private
 
+  def bonuses_to_use(frame)
+    [@frames_with_pending_score * frame.number_of_rolls, @pending_bonus_count].min
+  end
+
+  def update_bonus_count(amount, frame)
+    @pending_bonus_count -= amount
+    if @pending_bonus_count < 0
+      @pending_bonus_count = 0
+    end
+    if frame.strike?
+      @pending_bonus_count += 2
+      @frames_with_pending_score += 1
+    elsif frame.spare?
+      @pending_bonus_count += 1
+      @frames_with_pending_score += 1
+    end
+  end
+
   def extract_frames_from(gamecard)
-    gamecard.gsub("X", "X-")
-            .chars
-            .each_slice(2)
-            .map {|rolls| Frame.new(rolls.join) }
+    regular_frames = gamecard.gsub("X", "X-")
+                      .chars[0..18]
+                      .each_slice(2)
+                      .map {|rolls| Frame.new(rolls.join) }
+
+    last_frame = Frame.new(gamecard.gsub("X", "X-")
+                      .chars[18..-1]
+                      .join)
+
+    regular_frames << last_frame
   end
 end
 
@@ -37,7 +65,7 @@ class Frame
   MAX_POINTS = 10
 
   def initialize(roll_list)
-    @rolls = roll_list.chars
+    @rolls = roll_list.gsub('X-', 'X').chars
   end
 
   def score
@@ -46,15 +74,33 @@ class Frame
     @rolls.map(&:to_i).inject(&:+)
   end
 
-  def bonificable_score
-    @rolls.first.to_i
+  def first_roll_score
+    return MAX_POINTS if strike?
+    @rolls[0].to_i
+  end
+
+  def second_roll_score
+    return MAX_POINTS - first_roll_score if spare?
+    return nil if strike?
+    @rolls[1].to_i
+  end
+
+  def bonificable_score(bonus_count)
+    roll_scores = [first_roll_score, second_roll_score].compact
+    result = 0
+    bonus_count.times do |i|
+      result += roll_scores[i % number_of_rolls].to_i
+    end
+    result
   end
 
   def all_pins_down?
     spare? || strike?
   end
 
-  private
+  def number_of_rolls
+    @rolls.size
+  end
 
   def spare?
     @rolls.include?(SPARE)
@@ -138,12 +184,30 @@ describe 'Bowling' do
     expect(score).to eq(20)
   end
 
-  xit "nine pins down on the first frame and four pins down on the second frame score 13" do
+  it "strike in the two first frames and 3+4 pins down scores 47" do
 
-    game = "54-4----------------"
+    game = "XX34--------------"
 
     score = calculate_score(game)
 
-    expect(score).to eq(13)
+    expect(score).to eq(47) #27 + (13 + 7)
+  end
+
+  it "all spares and 5 pins down in extra roll score 150" do
+
+    game = "5/5/5/5/5/5/5/5/5/5/5"
+
+    score = calculate_score(game)
+
+    expect(score).to eq(150)
+  end
+
+  it "perfect game score 300" do
+
+    game = "XXXXXXXXXXXX"
+
+    score = calculate_score(game)
+
+    expect(score).to eq(300)
   end
 end
