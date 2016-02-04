@@ -8,6 +8,7 @@ class Game
   def initialize(gamecard)
     @frames = extract_frames_from(gamecard)
     @pending_bonus_count = 0
+    #elim
     @frames_with_pending_score = 0
   end
 
@@ -15,9 +16,11 @@ class Game
     @frames.inject(0) do |accumulator, frame|
       number_of_bonuses = bonuses_to_use(frame)
 
+      #unir
       accumulator += frame.score
       accumulator += frame.bonificable_score(number_of_bonuses)
 
+      #segregar resp. mantenimiento de bonus fuera de score
       update_bonus_count(number_of_bonuses, frame)
 
       accumulator
@@ -30,6 +33,7 @@ class Game
     [@frames_with_pending_score * frame.number_of_rolls, @pending_bonus_count].min
   end
 
+  # refactor
   def update_bonus_count(amount, frame)
     @pending_bonus_count -= amount
     if @pending_bonus_count < 0
@@ -45,6 +49,7 @@ class Game
   end
 
   def extract_frames_from(gamecard)
+    # eliminar ñapa
     regular_frames = gamecard.gsub("X", "X-")
                       .chars[0..18]
                       .each_slice(2)
@@ -58,6 +63,7 @@ class Game
   end
 end
 
+# check methods visibility
 class Frame
   SPARE = '/'
   STRIKE = 'X'
